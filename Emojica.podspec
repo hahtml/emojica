@@ -12,6 +12,7 @@ Pod::Spec.new do |s|
   s.social_media_url    = "http://twitter.com/xoudini"
   s.platform            = :ios, "10.1"
 
+  s.dependency  "YYKit"
   s.source              = { :git => "https://github.com/xoudini/emojica.git", :tag => s.version.to_s }
   s.source_files        = "Source/*.{h,swift}"
 
