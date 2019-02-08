@@ -21,6 +21,7 @@
 //
 
 import Foundation
+import YYKit
 
 /// A class to convert the standard emoji representation into something more
 /// customised. Images not provided.
@@ -160,6 +161,7 @@ extension Emojica {
 
 extension Emojica {
     
+    /// Abandoned
     /// Reverts an attributedString converted by Emojica to a string with standard emoji.
     /// - note:                         The instance must have `revertible` set to `true`.
     /// - parameter attributedString:   The attributed string to convert back to normal.
@@ -282,15 +284,41 @@ extension Emojica {
         
         guard let image = UIImage(named: name) else { return nil }
         
-        let attachment = EmojicaAttachment()
-        attachment.image = image
-        attachment.resize(to: self.pointSize, with: self.font)
-        
-        if self.revertible {
-            attachment.insert(unicodeScalars: replacement.unicodeScalars)
+        let targetSize = CGSize(width: self.pointSize, height: self.pointSize)
+        let resizedImage = resizeImage(image: image, targetSize: targetSize)
+        let attachmentString = NSMutableAttributedString.attachmentString(withContent: resizedImage,
+                                                                          contentMode: UIViewContentMode.center,
+                                                                       attachmentSize: targetSize,
+                                                                              alignTo: self.font!,
+                                                                            alignment: .center)
+
+        return attachmentString
+    }
+
+    func resizeImage(image: UIImage, targetSize: CGSize) -> UIImage? {
+        let size = image.size
+
+        let widthRatio  = targetSize.width  / size.width
+        let heightRatio = targetSize.height / size.height
+
+        // Figure out what our orientation is, and use that to form the rectangle
+        var newSize: CGSize
+        if(widthRatio > heightRatio) {
+            newSize = CGSize(width: size.width * heightRatio, height: size.height * heightRatio)
+        } else {
+            newSize = CGSize(width: size.width * widthRatio, height: size.height * widthRatio)
         }
-        
-        return NSAttributedString(attachment: attachment)
+
+        // This is the rect that we've calculated out and this is what is actually used below
+        let rect = CGRect(x: 0, y: 0, width: newSize.width, height: newSize.height)
+
+        // Actually do the resizing to the rect using the ImageContext stuff
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        image.draw(in: rect)
+        let newImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        return newImage
     }
     
     /// Used as fallback if `replacementString(from:)` returned `nil`.
@@ -312,17 +340,15 @@ extension Emojica {
             
             if let image = UIImage(named: name) {
                 
-                let attachment = EmojicaAttachment()
-                attachment.image = image
-                attachment.resize(to: self.pointSize, with: self.font)
-                
-                if self.revertible {
-                    while let u = failsafeStack.pop() {
-                        attachment.insert(unicodeScalar: u)
-                    }
-                }
-                
-                fallback.insert(NSAttributedString(attachment: attachment), at: 0)
+                    let targetSize = CGSize(width: self.pointSize, height: self.pointSize)
+                let resizedImage = resizeImage(image: image, targetSize: targetSize)
+                let attachmentString = NSMutableAttributedString.attachmentString(withContent: resizedImage,
+                                                                                  contentMode: UIViewContentMode.center,
+                                                                               attachmentSize: targetSize,
+                                                                                      alignTo: self.font!,
+                                                                                    alignment: .center)
+
+                fallback.insert(attachmentString, at: 0)
                 
             } else {
                 
